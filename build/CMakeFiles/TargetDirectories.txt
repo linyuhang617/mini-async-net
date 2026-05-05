@@ -1,0 +1,6 @@
+/root/mini-async-net/build/CMakeFiles/net_core.dir
+/root/mini-async-net/build/CMakeFiles/echo_server.dir
+/root/mini-async-net/build/CMakeFiles/chat_server.dir
+/root/mini-async-net/build/CMakeFiles/bench.dir
+/root/mini-async-net/build/CMakeFiles/edit_cache.dir
+/root/mini-async-net/build/CMakeFiles/rebuild_cache.dir
