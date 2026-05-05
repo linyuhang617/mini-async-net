@@ -1,2 +1,0 @@
-/usr/bin/ar qc libnet_core.a CMakeFiles/net_core.dir/core/EventLoop.cpp.o CMakeFiles/net_core.dir/core/ThreadPool.cpp.o CMakeFiles/net_core.dir/net/Connection.cpp.o CMakeFiles/net_core.dir/net/TcpServer.cpp.o
-/usr/bin/ranlib libnet_core.a
