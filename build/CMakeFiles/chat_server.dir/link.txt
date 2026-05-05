@@ -1,0 +1,1 @@
+/usr/bin/c++ -O2 -O3 -DNDEBUG CMakeFiles/chat_server.dir/examples/chat_server/main.cpp.o -o chat_server  libnet_core.a 
