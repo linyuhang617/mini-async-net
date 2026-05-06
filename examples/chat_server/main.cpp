@@ -2,6 +2,8 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <csignal>
+#include <algorithm>
 #include <unistd.h>
 #include "../../core/EventLoop.h"
 #include "../../net/Connection.h"
@@ -11,38 +13,45 @@ class ChatRoom;
 
 class ChatConnection : public Connection {
 public:
-    ChatConnection(int fd, std::string name, ChatRoom& room)
-        : fd_(fd), name_(std::move(name)), room_(room) {}
+    ChatConnection(std::string name, ChatRoom& room)
+        : name_(std::move(name)), room_(room) {}
     void on_read(int fd) override;
     void on_close() override;
-    void send(const std::string& msg) {
-        ::write(fd_, msg.c_str(), msg.size());
+    void send(int fd, const std::string& msg) {
+        Connection::send(fd, msg.c_str(), msg.size());
     }
     const std::string& name() const { return name_; }
 private:
-    int fd_;
     std::string name_;
     ChatRoom& room_;
 };
 
 class ChatRoom {
 public:
-    void join(std::weak_ptr<ChatConnection> conn) {
-        members_.push_back(conn);
+    void join(int fd, std::weak_ptr<ChatConnection> conn) {
+        members_.push_back({fd, conn});
     }
     void broadcast(const std::string& msg, ChatConnection* sender) {
         for (auto it = members_.begin(); it != members_.end(); ) {
-            auto c = it->lock();
+            auto c = it->second.lock();
             if (!c) { it = members_.erase(it); continue; }
-            if (c.get() != sender) c->send(msg);
+            if (c.get() != sender) c->send(it->first, msg);
             ++it;
         }
     }
     void leave(ChatConnection* conn) {
         broadcast("[" + conn->name() + " left]\n", conn);
+        members_.erase(
+            std::remove_if(members_.begin(), members_.end(),
+                [conn](const std::pair<int, std::weak_ptr<ChatConnection>>& p) {
+                    auto c = p.second.lock();
+                    return !c || c.get() == conn;
+                }),
+            members_.end()
+        );
     }
 private:
-    std::vector<std::weak_ptr<ChatConnection>> members_;
+    std::vector<std::pair<int, std::weak_ptr<ChatConnection>>> members_;
 };
 
 void ChatConnection::on_read(int fd) {
@@ -66,16 +75,17 @@ void ChatConnection::on_close() {
 }
 
 int main() {
+    signal(SIGPIPE, SIG_IGN);
     EventLoop loop;
     TcpServer server(loop, 9091);
     ChatRoom room;
     int user_id = 0;
     server.start([&room, &user_id](int fd) -> std::shared_ptr<Connection> {
         std::string name = "user" + std::to_string(++user_id);
-        auto conn = std::make_shared<ChatConnection>(fd, name, room);
-        room.join(conn);
+        auto conn = std::make_shared<ChatConnection>(name, room);
+        room.join(fd, conn);
         std::string welcome = "Welcome, " + name + "!\n";
-        ::write(fd, welcome.c_str(), welcome.size());
+        { [[maybe_unused]] auto r = ::write(fd, welcome.c_str(), welcome.size()); }
         room.broadcast("[" + name + " joined]\n", conn.get());
         return conn;
     });

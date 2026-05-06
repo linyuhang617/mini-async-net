@@ -19,6 +19,9 @@ target_link_libraries(net_core Threads::Threads)
 add_executable(echo_server examples/echo_server/main.cpp)
 target_link_libraries(echo_server net_core)
 
+add_executable(echo_server_plain examples/echo_server/main_plain.cpp)
+target_link_libraries(echo_server_plain net_core)
+
 add_executable(chat_server examples/chat_server/main.cpp)
 target_link_libraries(chat_server net_core)
 
